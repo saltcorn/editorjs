@@ -1,0 +1,14 @@
+{
+  "name": "@saltcorn/editorjs",
+  "version": "0.1.0",
+  "description": "A Free, Block-Style Editor with Universal JSON Output",
+  "main": "index.js",
+  "dependencies": {
+    "@saltcorn/markup": "^0.8.0",
+    "@saltcorn/data": "^0.8.0",
+    "editorjs-html": "^3.4.0"
+  },
+  "author": "RUTAYISIRE MANZI Gerard Valentin",
+  "license": "MIT",
+  "repository": "github:saltcorn/editorjs"
+}
