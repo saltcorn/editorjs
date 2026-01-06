@@ -124,9 +124,14 @@ const parser = editorjsHTML({
     const attrs = data.stretched ? ' class="table-stretched"' : "";
     return `<table${attrs}>${rows}</table>`;
   },
+  attaches: ({ data }) => {
+    const { file, title } = data;
+    const displayTitle = title || file.name || "Attachment";
+    return `<a href="${file.url}" target="_blank" rel="noopener noreferrer">${displayTitle}</a>`;
+  },
 });
 
-const editorjs_to_html = (content, req) => {
+const editorjs_to_html = (content) => {
   if (content == null) return "";
   let data = content;
   if (typeof data === "string") {
@@ -150,7 +155,7 @@ const EditorJSDisplay = {
   type: "JSON",
   isEdit: false,
   blockDisplay: true,
-  run: (value, req) => editorjs_to_html(value, req),
+  run: (value) => editorjs_to_html(value),
 };
 
 const EditorJSEdit = {
@@ -186,6 +191,64 @@ const EditorJSEdit = {
       script(
         domReady(/*js*/ `
 		(function () {
+      const removeFileExtension = (filename) => {
+        return filename.includes(".") ? filename.substring(0, filename.lastIndexOf(".")) : filename;
+      };
+      // Provide a basic in-browser uploader so ImageTool works without explicit endpoints.
+      const defaultImageUploader = {
+        uploadByFile(file) {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              resolve({ success: 1, file: { url: reader.result } });
+            };
+            reader.onerror = (err) => reject(err);
+            reader.readAsDataURL(file);
+          });
+        },
+        uploadByUrl(url) {
+          return Promise.resolve({ success: 1, file: { url } });
+        },
+      };
+      // Provide a simple data-URL uploader for Attaches tool.
+      const defaultAttachesUploader = {
+        uploadByFile(file) {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const name = file.name || "attachment";
+              const size = file.size || 0;
+              const extension = name.includes(".")
+                ? name.split(".").pop()
+                : "";
+              resolve({
+                success: 1,
+                file: { url: reader.result, name, size, extension, title: removeFileExtension(name) },
+              });
+            };
+            reader.onerror = (err) => reject(err);
+            reader.readAsDataURL(file);
+          });
+        },
+        uploadByUrl(url) {
+          return Promise.resolve({ success: 1, file: { url, name: url } });
+        },
+      };
+      // Patch LinkTool to work without a metadata endpoint by using a minimal client-side preview.
+      if (window.LinkTool && !window.LinkTool.__edjsPatchedFallback) {
+        const proto = window.LinkTool.prototype;
+        const originalFetch = proto.fetchLinkData;
+        proto.fetchLinkData = async function (url) {
+          if (this.config && this.config.endpoint) {
+            return originalFetch.call(this, url);
+          }
+          this.showProgress();
+          this.data = { link: url };
+          const meta = { title: url, description: "", image: null };
+          this.onFetch({ success: true, link: url, meta });
+        };
+        window.LinkTool.__edjsPatchedFallback = true;
+      }
 			const holderId = "${holderId}";
 			const inputEl = document.getElementById("${inputId}");
 			if (!inputEl) return;
@@ -222,10 +285,38 @@ const EditorJSEdit = {
 				Object.entries(toolMap)
 				.filter(([, v]) => !!v)
 				.map(([k, v]) => {
-					if (k === "list" || k === "nestedList")
-					return [k, { class: v, inlineToolbar: true }];
-					if (k === "linkTool") return [k, { class: v, inlineToolbar: true }];
-					return [k, v];
+          if (k === "list" || k === "nestedList")
+            return [k, { class: v, inlineToolbar: true }];
+          if (k === "header")
+            return [
+              k,
+              {
+                class: v,
+                inlineToolbar: true,
+                config: {
+                  levels: [1, 2, 3, 4],
+                  defaultLevel: 2,
+                  placeholder: "Heading",
+                },
+              },
+            ];
+          if (k === "paragraph" || k === "quote" || k === "checklist")
+            return [k, { class: v, inlineToolbar: true }];
+          if (k === "linkTool") return [k, { class: v, inlineToolbar: true }];
+          if (k === "image")
+            return [k, { class: v, config: { uploader: defaultImageUploader } }];
+          if (k === "attaches")
+            return [
+            k,
+            {
+              class: v,
+              config: {
+                uploader: defaultAttachesUploader,
+                errorMessage: "File upload failed",
+              },
+            },
+            ];
+          return [k, v];
 				})
 			);
 
