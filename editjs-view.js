@@ -69,12 +69,66 @@ const headers = [
   },
 ];
 
-const parser = editorjsHTML();
+const renderNestedItems = (items = [], style = "unordered") => {
+  if (!Array.isArray(items) || items.length === 0) return "";
+  const tag = style === "ordered" ? "ol" : "ul";
+  const renderItem = (item) => {
+    const child = renderNestedItems(item.items || [], item.style || style);
+    const content = item.content || "";
+    return `<li>${content}${child}</li>`;
+  };
+  return `<${tag} style="padding-left: 1em;">${items
+    .map(renderItem)
+    .join("")}</${tag}>`;
+};
+
+const parser = editorjsHTML({
+  raw: ({ data }) => {
+    const { html } = data;
+    return html || "";
+  },
+  nestedList: ({ data }) => {
+    const { items, style } = data;
+    return renderNestedItems(items, style);
+  },
+  checklist: ({ data }) => {
+    const { items } = data;
+    if (!Array.isArray(items) || items.length === 0) return "";
+    const listItems = items
+      .map(
+        (item) =>
+          `<li style="list-style: none;"><input type="checkbox" disabled${
+            item.checked ? " checked" : ""
+          }/> ${item.text}</li>`
+      )
+      .join("");
+    return `<ul class="checklist" style="padding-left: 0;">${listItems}</ul>`;
+  },
+  linkTool: ({ data }) => {
+    const { link, meta } = data;
+    const title = (meta && meta.title) || link;
+    return `<a href="${link}" target="_blank" rel="noopener noreferrer">${title}</a>`;
+  },
+  table: ({ data }) => {
+    const rowsData = Array.isArray(data.content) ? data.content : [];
+    if (rowsData.length === 0) return "";
+    const rows = rowsData
+      .map((row, rowIndex) => {
+        const cellTag = data.withHeadings && rowIndex === 0 ? "th" : "td";
+        const cells = row
+          .map((cell) => `<${cellTag}>${cell ?? ""}</${cellTag}>`)
+          .join("");
+        return `<tr>${cells}</tr>`;
+      })
+      .join("");
+    const attrs = data.stretched ? ' class="table-stretched"' : "";
+    return `<table${attrs}>${rows}</table>`;
+  },
+});
 
 const editorjs_to_html = (content, req) => {
   if (content == null) return "";
   let data = content;
-  console.log(typeof data, "###");
   if (typeof data === "string") {
     try {
       data = JSON.parse(data);
@@ -132,7 +186,6 @@ const EditorJSEdit = {
       script(
         domReady(/*js*/ `
 		(function () {
-      console.log(window)
 			const holderId = "${holderId}";
 			const inputEl = document.getElementById("${inputId}");
 			if (!inputEl) return;
