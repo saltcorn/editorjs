@@ -5,8 +5,8 @@ Saltcorn plugin that adds the Editor.js block-style rich text editor with JSON s
 ## Use
 
 1. Add a JSON field to your table to hold Editor.js data.
-2. In a form view, choose the `EditorJSEdit` field view for that field to get the block editor UI.
-3. In a show/list view, choose the `EditorJS` field view to render the stored content.
+2. In a form view, choose the `editorjs` field view for that field to get the block editor UI.
+3. In a show/list view, choose the `editorjs_viewer` field view to render the stored content.
 
 ## Rendering elsewhere
 

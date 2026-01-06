@@ -151,7 +151,7 @@ const editorjs_to_html = (content) => {
   }
 };
 
-const EditorJSDisplay = {
+const EditorJSViewer = {
   type: "JSON",
   isEdit: false,
   blockDisplay: true,
@@ -359,8 +359,8 @@ const EditorJSEdit = {
 module.exports = {
   headers,
   fieldviews: {
-    EditorJS: EditorJSDisplay,
-    EditorJSEdit,
+    editorjs_viewer: EditorJSViewer,
+    editorjs: EditorJSEdit,
   },
   functions: {
     editorjs_to_html: {
