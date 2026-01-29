@@ -1,6 +1,6 @@
 {
   "name": "@saltcorn/editorjs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A Free, Block-Style Editor with Universal JSON Output",
   "main": "index.js",
   "dependencies": {
