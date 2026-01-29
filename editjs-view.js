@@ -99,7 +99,7 @@ const parser = editorjsHTML({
         (item) =>
           `<li style="list-style: none;"><input type="checkbox" disabled${
             item.checked ? " checked" : ""
-          }/> ${item.text}</li>`
+          }/> ${item.text}</li>`,
       )
       .join("");
     return `<ul class="checklist" style="padding-left: 0;">${listItems}</ul>`;
@@ -162,6 +162,9 @@ const EditorJSEdit = {
   type: "JSON",
   isEdit: true,
   blockDisplay: true,
+  configFields: [
+    { name: "autofocus", label: "Autofocus", type: "Bool", default: true },
+  ],
   run: (value, req, attrs = {}, cls = "", required = false, field = {}) => {
     const fieldName = field.name || attrs.name || attrs.field_name || "";
     const holderId = `edjs_${Math.random().toString(36).slice(2)}`;
@@ -332,7 +335,7 @@ const EditorJSEdit = {
 
 			editor = new window.EditorJS({
 				holder: holderId,
-				autofocus: true,
+				autofocus: ${attrs.autofocus === false ? "false" : "true"},
 				readOnly: false,
 				data: initialData || undefined,
 				placeholder: "Start writing...",
@@ -350,7 +353,7 @@ const EditorJSEdit = {
 				});
 			}
 		})();
-		`)
+		`),
       ),
     ]);
   },
